@@ -8,7 +8,7 @@ orbs:
 jobs:
   test:
     docker:
-      - image: default
+      - image: circleci/node:14.17.3
     steps:
       - checkout
       - restore_cache:
