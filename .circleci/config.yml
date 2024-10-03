@@ -9,6 +9,7 @@ jobs:
   test:
     docker:
       - image: cimg/base:2024.10
+      - image: ubuntu-2204:edge
     steps:
       - checkout
       - restore_cache:
@@ -18,8 +19,7 @@ jobs:
       - run:
           name: Install Dependencies
           command: npm install
-    machine:
-      image: ubuntu-2204:edge
+      
      
     
  
