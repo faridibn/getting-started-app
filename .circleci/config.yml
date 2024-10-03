@@ -6,7 +6,7 @@ jobs:
       - image: circleci/node:14
     steps:
       - checkout
-
+      
       # Cache Node.js dependencies
       - restore_cache:
           keys:
@@ -16,24 +16,26 @@ jobs:
       - run:
           name: Install Dependencies
           command: npm install
+      - run:
+          name: awscli
+          command: curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                   unzip awscliv2.zip
+                   sudo ./aws/install.
       
-      # Save Node.js dependencies to the cache
       - save_cache:
           paths:
             - node_modules
           key: v1-node-modules-{{ checksum "package-lock.json" }}
-      
-      # Run tests (optional)
-    
+
+     
 
       # Build Docker image
       - setup_remote_docker:
-          version: edge
+          version: 20.10.7
 
       - run:
           name: Build Docker Image
-          command: |
-            docker build -t wpadmin2 .
+          command: docker build -t wpadmin2 .
 
       # Authenticate Docker with AWS ECR
       - run:
@@ -45,8 +47,7 @@ jobs:
       # Push Docker image to AWS ECR
       - run:
           name: Push Docker Image to ECR
-          command: |
-           docker tag wpadmin2:latest 767888781477.dkr.ecr.ap-south-1.amazonaws.com/wpadmin2:latest
+          command: docker push 767888781477.dkr.ecr.ap-south-1.amazonaws.com/wpadmin2:latest
 
   deploy:
     docker:
@@ -54,12 +55,15 @@ jobs:
     steps:
       - checkout
 
-      # Update ECS service to deploy the new image
+      # Update ECS service to use the new Docker image
       - run:
-          name: Update ECS Service with new image
+          name: Update ECS Service with new Docker Image
           command: |
-            ecs-cli configure --cluster demo-cluster2 --region ap-south-1
-            ecs-cli compose --file docker-compose.yml service up --cluster-config demo-cluster2 --ecs-params ecs-params.yml
+            aws ecs update-service \
+            --cluster demo-cluster2 \
+            --service todosvc \
+            --force-new-deployment \
+            --region ap-south-1
 
 workflows:
   version: 2
