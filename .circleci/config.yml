@@ -22,7 +22,7 @@ jobs:
     
  
 workflows:
-  test-build-deploy
+  test-build-deploy:
     jobs:
       - test:
           filters:
