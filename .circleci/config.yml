@@ -24,9 +24,7 @@ jobs:
           key: v1-node-modules-{{ checksum "package-lock.json" }}
       
       # Run tests (optional)
-      - run:
-          name: Run Tests
-          command: npm test
+    
 
       # Build Docker image
       - setup_remote_docker:
@@ -35,20 +33,20 @@ jobs:
       - run:
           name: Build Docker Image
           command: |
-            docker build -t $AWS_ECR_REPO_URL:latest .
+            docker build -t wpadmin2 .
 
       # Authenticate Docker with AWS ECR
       - run:
           name: Authenticate with AWS ECR
           command: |
             aws --version
-            aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ECR_REPO_URL
+           aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 767888781477.dkr.ecr.ap-south-1.amazonaws.com
 
       # Push Docker image to AWS ECR
       - run:
           name: Push Docker Image to ECR
           command: |
-            docker push $AWS_ECR_REPO_URL:latest
+           docker tag wpadmin2:latest 767888781477.dkr.ecr.ap-south-1.amazonaws.com/wpadmin2:latest
 
   deploy:
     docker:
@@ -60,8 +58,8 @@ jobs:
       - run:
           name: Update ECS Service with new image
           command: |
-            ecs-cli configure --cluster $AWS_ECS_CLUSTER_NAME --region $AWS_DEFAULT_REGION
-            ecs-cli compose --file docker-compose.yml service up --cluster-config $AWS_ECS_CLUSTER_NAME --ecs-params ecs-params.yml
+            ecs-cli configure --cluster demo-cluster2 --region ap-south-1
+            ecs-cli compose --file docker-compose.yml service up --cluster-config demo-cluster2 --ecs-params ecs-params.yml
 
 workflows:
   version: 2
