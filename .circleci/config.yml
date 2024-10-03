@@ -1,61 +1,73 @@
 version: 2.1
-setup: false
-orbs:
-  aws-ecs: circleci/aws-ecs@3.2.0
-  aws-ecr: circleci/aws-ecr@8.1.2
-  node: circleci/node@6.1.0
-  docker: circleci/docker@2.7.1
+
 jobs:
-  test:
+  build:
     docker:
-      - image: cimg/base:2024.10
-      - image: ubuntu-2204:edge
+      - image: circleci/node:14
     steps:
       - checkout
+
+      # Cache Node.js dependencies
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "package-lock.json" }}
-              - v1-dependencies-
+            - v1-node-modules-{{ checksum "package-lock.json" }}
+            - v1-node-modules-
+      
       - run:
           name: Install Dependencies
           command: npm install
       
-     
-    
- 
+      # Save Node.js dependencies to the cache
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-node-modules-{{ checksum "package-lock.json" }}
+      
+      # Run tests (optional)
+      - run:
+          name: Run Tests
+          command: npm test
+
+      # Build Docker image
+      - setup_remote_docker:
+          version: 20.10.7
+
+      - run:
+          name: Build Docker Image
+          command: |
+            docker build -t $AWS_ECR_REPO_URL:latest .
+
+      # Authenticate Docker with AWS ECR
+      - run:
+          name: Authenticate with AWS ECR
+          command: |
+            aws --version
+            aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ECR_REPO_URL
+
+      # Push Docker image to AWS ECR
+      - run:
+          name: Push Docker Image to ECR
+          command: |
+            docker push $AWS_ECR_REPO_URL:latest
+
+  deploy:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+
+      # Update ECS service to deploy the new image
+      - run:
+          name: Update ECS Service with new image
+          command: |
+            ecs-cli configure --cluster $AWS_ECS_CLUSTER_NAME --region $AWS_DEFAULT_REGION
+            ecs-cli compose --file docker-compose.yml service up --cluster-config $AWS_ECS_CLUSTER_NAME --ecs-params ecs-params.yml
+
 workflows:
-  test-build-deploy:
+  version: 2
+  build_and_deploy:
     jobs:
-      - test:
-          filters:
-            branches:
-              only: main
-      - aws-ecr/build-and-push-image: # Use the pre-defined `build-and-push-image`
-          dockerfile: Dockerfile
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-cli-version: latest
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-          path: .
-          profile-name: default
-          repo: wpadmin2
-          region: ${AWS_REGION}
-          registry-id: AWS_ECR_REGISTRY_ID
-          tag: '${CIRCLE_WORKFLOW_ID}'
-          push-image: true
-          platform: linux/amd64
+      - build
+      - deploy:
           requires:
-            - test
-          filters:
-            branches:
-              only: main
-      - aws-ecs/deploy-service-update:
-          cluster: 'mera-cluster'
-          container-image-name-updates: 'container=todo,tag=${CIRCLE_WORKFLOW_ID}'
-          family: 'wpadmin2'
-          service-name: 'todosvc'
-          requires:
-            - aws-ecr/build-and-push-image
-          filters:
-            branches:
-              only: main
-     
+            - build
