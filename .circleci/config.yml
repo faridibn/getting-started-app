@@ -8,14 +8,13 @@ orbs:
 jobs:
   test:
     docker:
-      - image: node:latest
+      - image: ubuntu-2204:edge
      
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "package-lock.json" }}
-              - v1-dependencies-
+      - run:
+          name: Install node
+          command: sudo apt install npm
       - run:
           name: Install Dependencies
           command: npm install
