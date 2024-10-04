@@ -12,9 +12,7 @@ jobs:
      
     steps:
       - checkout
-      - run:
-          name: Install node
-          command: sudo apt install npm
+     
       - run:
           name: Install Dependencies
           command: npm install
