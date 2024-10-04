@@ -8,7 +8,7 @@ orbs:
 jobs:
   test:
     docker:
-      - image: node
+      - image: node:latest
      
     steps:
       - checkout
