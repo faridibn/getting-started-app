@@ -14,7 +14,6 @@ jobs:
      executor: my-executor
      steps:
       - checkout
-      - setup_remote_docker
       - run:
           name: Install Dependencies
           command: npm install
