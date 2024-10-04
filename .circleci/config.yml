@@ -5,12 +5,14 @@ orbs:
   aws-ecr: circleci/aws-ecr@8.1.2
   node: circleci/node@5.0.2
   docker: circleci/docker@1.5.0
+executors:
+  my-executor:
+    docker:
+      - image: cimg/node:16.20.2
 jobs:
   test:
-    docker:
-      - image: cimg/node:22.9.0
-     
-    steps:
+     executor: my-executor
+     steps:
       - checkout
       - setup_remote_docker
       - run:
