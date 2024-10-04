@@ -26,7 +26,7 @@ workflows:
       - test:
           filters:
             branches:
-              only: staging
+              only: main
       - aws-ecr/build-and-push-image: # Use the pre-defined `build-and-push-image`
           dockerfile: Dockerfile
           aws-access-key-id: AWS_ACCESS_KEY_ID
@@ -44,7 +44,7 @@ workflows:
             - test
           filters:
             branches:
-              only: staging
+              only: main 
       - aws-ecs/deploy-service-update:
           cluster: 'api-staging'
           container-image-name-updates: 'container=auth-container,tag=${CIRCLE_WORKFLOW_ID}'
@@ -54,5 +54,5 @@ workflows:
             - aws-ecr/build-and-push-image
           filters:
             branches:
-              only: staging
+              only: main
      
