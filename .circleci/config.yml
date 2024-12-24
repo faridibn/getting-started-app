@@ -10,6 +10,8 @@ jobs:
   test:
     docker:
       - image: cimg/node:16.20.2
+    environment:
+      AWS_REGION: ap-south-1
       
     steps:
       - checkout
@@ -87,7 +89,8 @@ workflows:
           auth:
             - aws-cli/setup:
                 aws_access_key_id: AWS_ACCESS_KEY_ID
-                aws_secret_access_key: AWS_SECRET_ACCESS_KEY                
+                aws_secret_access_key: AWS_SECRET_ACCESS_KEY   
+                region: ap-south-1             
           container_image_name_updates: 'container=todo,tag=${CIRCLE_WORKFLOW_ID}'
           family: 'todo-11-03'
           service_name: 'todosvc'
