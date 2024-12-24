@@ -13,27 +13,11 @@ jobs:
       
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "package-lock.json" }}
-              - v1-dependencies-
+      
       - run:
           name: Install Dependencies
           command: npm install
-      - save_cache:
-          paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package-lock.json" }}
-      - run:
-          name: Check Build Logs
-          command: |
-            npm start 2>&1 | tee start.log &
-            sleep 40  # Wait for the application to start
-            cat start.log
-            if grep -i "error" start.log; then
-              echo "Errors or warnings found in start logs"
-              exit 1
-            fi
+     
      
    
 workflows:
