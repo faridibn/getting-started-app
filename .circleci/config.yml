@@ -26,6 +26,12 @@ workflows:
   test-build-deploy:
     jobs:
       - test:
+          name: test-stag
+          filters:
+            branches:
+              only: staging
+      - test:
+          name: test-prod
           filters:
             branches:
               only: main
@@ -46,7 +52,7 @@ workflows:
           push_image: true
           platform: linux/amd64
           requires:
-            - test
+            - test-prod
           filters:
             branches:
               only: main
@@ -66,7 +72,7 @@ workflows:
           push_image: true
           platform: linux/amd64
           requires:
-            - test
+            - test-stag
           filters:
             branches:
               only: staging
