@@ -50,40 +50,8 @@ workflows:
           filters:
             branches:
               only: main
-      - aws-ecr/build_and_push_image: # Use the pre-defined `build-and-push-image`
-          name: staging
-          context: aws
-          auth:
-            - aws-cli/setup:
-                aws_access_key_id: AWS_ACCESS_KEY_ID
-                aws_secret_access_key: AWS_SECRET_ACCESS_KEY
-          dockerfile: Dockerfile          
-          path: .
-          repo: b2c-assessment-engine-ms-staging
-          region: ${AWS_REGION}          
-          tag: '${CIRCLE_WORKFLOW_ID}'
-          push_image: true
-          platform: linux/amd64
-          requires:
-            - test
-          filters:
-            branches:
-              only: staging
-      - aws-ecs/deploy_service_update:
-          name: staging-deploy
-          cluster: 'naya-cluster'
-          auth:
-            - aws-cli/setup:
-                aws_access_key_id: AWS_ACCESS_KEY_ID
-                aws_secret_access_key: AWS_SECRET_ACCESS_KEY                
-          container_image_name_updates: 'container=assessment-container,tag=${CIRCLE_WORKFLOW_ID}'
-          family: 'b2c-assessment-ms-staging'
-          service_name: 'assessment-staging'
-          requires:
-            - staging
-          filters:
-            branches:
-              only: staging
+     
+      
       - aws-ecs/deploy_service_update:
           name: prod-deploy
           cluster: 'naya-cluster'
