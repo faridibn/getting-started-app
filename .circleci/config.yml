@@ -28,7 +28,7 @@ workflows:
             branches:
               only: main
       
-      - aws-ecr/build_and_push_image: # Use the pre-defined `build-and-push-image`
+      - aws-ecr/build_and_push_image: # Use the pre-defined `build-and-push-image
           name: main
           context: aws
           auth:
