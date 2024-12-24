@@ -1,21 +1,41 @@
 version: 2.1
 setup: false
 orbs:
-  aws-ecs: circleci/aws-ecs@3.2.0
-  aws-ecr: circleci/aws-ecr@8.1.2
-  node: circleci/node@5.0.2
-  docker: circleci/docker@1.5.0
-
+  aws-ecs: circleci/aws-ecs@6.0.0 #ff
+  aws-ecr: circleci/aws-ecr@9.3.4
+  node: circleci/node@6.1.0
+  docker: circleci/docker@2.7.1
+  aws-cli: circleci/aws-cli@5.1.0
 jobs:
   test:
-     machine:
-      image: default
-     steps:
+    docker:
+      - image: cimg/node:16.20.2
+      
+    steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
+              - v1-dependencies-
       - run:
           name: Install Dependencies
           command: npm install
-    
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
+      - run:
+          name: Check Build Logs
+          command: |
+            npm start 2>&1 | tee start.log &
+            sleep 40  # Wait for the application to start
+            cat start.log
+            if grep -i "error" start.log; then
+              echo "Errors or warnings found in start logs"
+              exit 1
+            fi
+     
+   
 workflows:
   test-build-deploy:
     jobs:
@@ -23,32 +43,74 @@ workflows:
           filters:
             branches:
               only: main
-      - aws-ecr/build-and-push-image: # Use the pre-defined `build-and-push-image`
-          dockerfile: Dockerfile
-          aws-access-key-id: AWS_ACCESS_KEY_ID
-          aws-cli-version: latest
-          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+      
+      - aws-ecr/build_and_push_image: # Use the pre-defined `build-and-push-image`
+          name: main
+          context: aws
+          auth:
+            - aws-cli/setup:
+                aws_access_key_id: AWS_ACCESS_KEY_ID
+                aws_secret_access_key: AWS_SECRET_ACCESS_KEY
+          dockerfile: Dockerfile          
           path: .
-          profile-name: default
-          repo: b2c-auth-ms-staging
-          region: ${AWS_REGION}
-          registry-id: AWS_ECR_REGISTRY_ID
+          repo: wpadmin2
+          region: ${AWS_REGION}          
           tag: '${CIRCLE_WORKFLOW_ID}'
-          push-image: true
+          push_image: true
           platform: linux/amd64
           requires:
             - test
           filters:
             branches:
-              only: main 
-      - aws-ecs/deploy-service-update:
-          cluster: 'api-staging'
-          container-image-name-updates: 'container=auth-container,tag=${CIRCLE_WORKFLOW_ID}'
-          family: 'b2c-auth-ms-staging'
-          service-name: 'auth-api-staging'
+              only: main
+      - aws-ecr/build_and_push_image: # Use the pre-defined `build-and-push-image`
+          name: staging
+          context: aws
+          auth:
+            - aws-cli/setup:
+                aws_access_key_id: AWS_ACCESS_KEY_ID
+                aws_secret_access_key: AWS_SECRET_ACCESS_KEY
+          dockerfile: Dockerfile          
+          path: .
+          repo: b2c-assessment-engine-ms-staging
+          region: ${AWS_REGION}          
+          tag: '${CIRCLE_WORKFLOW_ID}'
+          push_image: true
+          platform: linux/amd64
           requires:
-            - aws-ecr/build-and-push-image
+            - test
           filters:
             branches:
-              only: main
+              only: staging
+      - aws-ecs/deploy_service_update:
+          name: staging-deploy
+          cluster: 'naya-cluster'
+          auth:
+            - aws-cli/setup:
+                aws_access_key_id: AWS_ACCESS_KEY_ID
+                aws_secret_access_key: AWS_SECRET_ACCESS_KEY                
+          container_image_name_updates: 'container=assessment-container,tag=${CIRCLE_WORKFLOW_ID}'
+          family: 'b2c-assessment-ms-staging'
+          service_name: 'assessment-staging'
+          requires:
+            - staging
+          filters:
+            branches:
+              only: staging
+      - aws-ecs/deploy_service_update:
+          name: prod-deploy
+          cluster: 'naya-cluster'
+          auth:
+            - aws-cli/setup:
+                aws_access_key_id: AWS_ACCESS_KEY_ID
+                aws_secret_access_key: AWS_SECRET_ACCESS_KEY                
+          container_image_name_updates: 'container=todo,tag=${CIRCLE_WORKFLOW_ID}'
+          family: 'todo-11-03'
+          service_name: 'todosvc'
+          requires:
+            - main
+          filters:
+            branches:
+              only: main       
+    
      
