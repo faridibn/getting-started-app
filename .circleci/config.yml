@@ -31,7 +31,7 @@ workflows:
               only: main
       
       - aws-ecr/build_and_push_image: # Use the pre-defined `build-and-push-image
-          name: main
+          name: main-ecs
           context: aws
           auth:
             - aws-cli/setup:
@@ -50,6 +50,26 @@ workflows:
           filters:
             branches:
               only: main
+      - aws-ecr/build_and_push_image: # Use the pre-defined `build-and-push-image
+          name: stag-ecs
+          context: aws
+          auth:
+            - aws-cli/setup:
+                aws_access_key_id: AWS_ACCESS_KEY_ID
+                aws_secret_access_key: AWS_SECRET_ACCESS_KEY
+                region: ap-south-1
+          dockerfile: Dockerfile          
+          path: .
+          repo: wpadmin2
+          region: ${AWS_REGION}          
+          tag: '${CIRCLE_WORKFLOW_ID}'
+          push_image: true
+          platform: linux/amd64
+          requires:
+            - test
+          filters:
+            branches:
+              only: staging
      
       
       - aws-ecs/deploy_service_update:
@@ -64,9 +84,25 @@ workflows:
           family: 'todo-11-03'
           service_name: 'todosvc'
           requires:
-            - main
+            - main-ecs
           filters:
             branches:
-              only: main       
+              only: main 
+      - aws-ecs/deploy_service_update:
+          name: stag-deploy
+          cluster: 'naya-cluster'
+          auth:
+            - aws-cli/setup:
+                aws_access_key_id: AWS_ACCESS_KEY_ID
+                aws_secret_access_key: AWS_SECRET_ACCESS_KEY   
+                region: ap-south-1             
+          container_image_name_updates: 'container=todo,tag=${CIRCLE_WORKFLOW_ID}'
+          family: 'todo-11-03'
+          service_name: 'todosvc'
+          requires:
+            - stag-ecs
+          filters:
+            branches:
+              only: staging             
     
      
