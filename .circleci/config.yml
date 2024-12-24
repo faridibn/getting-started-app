@@ -1,7 +1,7 @@
 version: 2.1
 setup: false
 orbs:
-  aws-ecs: circleci/aws-ecs@6.0.0 #
+  aws-ecs: circleci/aws-ecs@6.0.0 #=
   aws-ecr: circleci/aws-ecr@9.3.4
   node: circleci/node@6.1.0
   docker: circleci/docker@2.7.1
